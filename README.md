@@ -5,15 +5,21 @@
 
 A [Remark](https://github.com/remarkjs/remark) plugin to parse inline footnote definitions and references, transforming them into nodes suitable for creating accessible margin notes, often styled like Tufte sidenotes. Includes Rehype handlers for HTML conversion.
 
+Currently only works with multi-word definitions
+
+```markdown
+this works:
+[+note]: margin note here
+
+this does not:
+[+note]: something
+```
+
 ## Content
 
 *   [What this is](#what-this-is)
-*   [When to use this](#when-to-use-this)
 *   [Install](#install)
 *   [Use](#use)
-*   [API](#api)
-    *   [`unified().use(remarkInlineAsideFootnotes)`](#unifieduseremarkinlineasidefootnotes)
-    *   [`rehypeInlineAsideFootnoteHandlers`](#rehypeinlineasidefootnotehandlers)
 *   [Syntax](#syntax)
 *   [Example HTML Output](#example-html-output)
 *   [Styling](#styling)
@@ -45,33 +51,53 @@ It transforms these into custom MDAST nodes (asideFootnoteReference, asideFootno
 ```js
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import remarkMarginnotes, { rehypeMarginnotesHandlers } from 'remark-marginnotes';
+import remarkGfm from 'remark-gfm';
+import { remarkMarginnotesPlugin, marginnoteHandlers } from 'remark-marginnotes';
 import remarkRehype from 'remark-rehype';
 import rehypeStringify from 'rehype-stringify';
 import { VFile } from 'vfile';
 
 const markdown = `
-This is some text with a reference[+ref1].
-[+ref1]: This is the definition for the first reference.
+# Example Document
 
-Here is another reference [+ref2].
-[+ref2]: And its definition. Note that this is the *first* appearance.
+This document demonstrates the inline aside footnotes. Here's the first reference [+note1].
 
-You can reference the first one again [+ref1].
+[+note1]: This is the definition for the first note. It can contain *Markdown* like emphasis and `code`.
+
+Here's a second, different reference [+ref-abc].
+
+[+ref-abc]: This definition belongs to the second reference.
+
+We can still have normal[^fn] footnotes.
+[^fn]: By normal, we mean gfm style footnotes
+
+And there you go!
 `;
 
 async function processMarkdown() {
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkMarginnotes) // Use the remark plugin
-    .use(remarkRehype, {
-      // Pass the handlers to remark-rehype
-      handlers: rehypeMarginnotesHandlers
-    })
-    .use(rehypeStringify)
-    .process(new VFile({ path: 'input.md', value: markdown }));
+    try {
+        // Read the example Markdown file
+        const file = await read(path.join(__dirname, 'example.md'));
+        console.log('--- Input Markdown ---');
+        console.log(String(file));
 
-  console.log(String(file));
+        // Process the file
+        const result = await unified()
+            .use(remarkParse)
+            .use(remarkGfm)
+            .use(remarkMarginnotesPlugin)
+            .use(remarkRehype, {
+                handlers: marginnoteHandlers
+            })
+            .use(rehypeStringify)
+            .process(file);
+
+        console.log('\n--- Output HTML ---');
+        console.log(String(result));
+
+    } catch (error) {
+        console.error("Error processing Markdown:", error);
+    }
 }
 
 processMarkdown();
@@ -92,7 +118,20 @@ processMarkdown();
 Given the Markdown in the Use section, the approximate HTML output would be:
 
 ```html
-<p>This is some text with a reference</p>
+<h1>Example Document</h1>
+<p>This document demonstrates the inline aside footnotes. Here's the first reference <sup class="aside-footnote-ref-wrapper"><a href="#aside-fn-def-1" id="aside-fn-ref-1-1" class="aside-footnote-ref" role="doc-noteref" aria-describedby="aside-footnote-label-1" data-footnote-identifier="note1" data-footnote-instance="1">[1]</a></sup><span id="aside-fn-def-1" class="aside-footnote-def" role="note" data-footnote-identifier="note1"><span id="aside-footnote-label-1" class="hidden">Footnote 1</span><span class="aside-footnote-number">1. </span>This is the definition for the first note. It can contain <em>Markdown</em> like emphasis and <code>code</code>. <a href="#aside-fn-ref-1-1" class="aside-footnote-backref" role="doc-backlink" aria-label="Back to first 
+reference for footnote 1">↩</a></span>.</p>
+<p>Here's a second, different reference <sup class="aside-footnote-ref-wrapper"><a href="#aside-fn-def-2" id="aside-fn-ref-2-1" class="aside-footnote-ref" role="doc-noteref" aria-describedby="aside-footnote-label-2" data-footnote-identifier="ref-abc" data-footnote-instance="1">[2]</a></sup><span id="aside-fn-def-2" class="aside-footnote-def" role="note" data-footnote-identifier="ref-abc"><span id="aside-footnote-label-2" class="hidden">Footnote 2</span><span class="aside-footnote-number">2. </span>This 
+definition belongs to the second reference. <a href="#aside-fn-ref-2-1" class="aside-footnote-backref" role="doc-backlink" aria-label="Back to first reference for footnote 2">↩</a></span>.</p>
+<p>We can still have normal<sup><a href="#user-content-fn-fn" id="user-content-fnref-fn" data-footnote-ref aria-describedby="footnote-label">1</a></sup> footnotes.</p>
+<p>And there you go!</p>
+<section data-footnotes class="footnotes"><h2 class="sr-only" id="footnote-label">Footnotes</h2>
+<ol>
+<li id="user-content-fn-fn">
+<p>By normal, we mean gfm style footnotes <a href="#user-content-fnref-fn" data-footnote-backref="" aria-label="Back to reference 1" class="data-footnote-backref">↩</a></p>
+</li>
+</ol>
+</section>
 ```
 
 ## Styling
