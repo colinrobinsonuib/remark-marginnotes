@@ -2,6 +2,7 @@ import { visit, SKIP, CONTINUE } from 'unist-util-visit';
 import { remove } from 'unist-util-remove';
 import type { Node, Parent } from 'unist';
 import type { Root, Text } from 'mdast'
+import { MarginnoteDefinition, MarginnoteReference } from './types.js';
 
 const C_PLUS = 43; // '+'
 const C_BRACKET_OPEN = 91; // '['
@@ -11,21 +12,7 @@ const C_COLON = 58; // ':'
 const identifierRegex = /^[a-zA-Z0-9_-]+$/;
 const referenceRegex = /\[\+(.*?)\]/g; // Changed % to +
 
-export type AsideFootnoteReference = {
-    type: 'asideFootnoteReference';
-    identifier: string;
-    number: number;
-    referenceInstance: number;
-}
-
-export type AsideFootnoteDefinition = {
-    type: 'asideFootnoteDefinition';
-    identifier: string;
-    number: number;
-    children: Node[];
-}
-
-function remarkInlineAsideFootnotes() {
+function remarkMarginnotes() {
     return (tree: Root) => {
         const definitions: Record<string, { identifier: string; children: Node[] }> = {}; // Store definition content
         const definitionNodesToRemove: Node[] = []; // Store original definition nodes to remove later
@@ -136,22 +123,22 @@ function remarkInlineAsideFootnotes() {
                         const referenceInstance = referenceCounts[identifier]!; // e.g., 1st, 2nd ref
 
                         // --- Create Reference Node ---
-                        const referenceNode: AsideFootnoteReference = {
-                            type: 'asideFootnoteReference', // Custom node type
+                        const referenceNode: MarginnoteReference = {
+                            type: 'marginnoteReference',
                             identifier: identifier,
                             number: number,
-                            referenceInstance: referenceInstance, // Store which occurrence this is
+                            referenceInstance: referenceInstance,
                         };
                         newChildren.push(referenceNode);
                         nodesAdded++;
 
                         // --- Create and Add Definition Node (ONLY on first reference) ---
                         if (isFirstReference) {
-                            const definitionNode: AsideFootnoteDefinition = {
-                                type: 'asideFootnoteDefinition', // Custom node type
+                            const definitionNode: MarginnoteDefinition = {
+                                type: 'marginnoteDefinition',
                                 identifier: identifier,
                                 number: number,
-                                children: definitionData.children, // Use the stored content
+                                children: definitionData.children,
                             };
                             newChildren.push(definitionNode);
                             nodesAdded++;
@@ -200,4 +187,4 @@ function remarkInlineAsideFootnotes() {
     };
 }
 
-export default remarkInlineAsideFootnotes;
+export default remarkMarginnotes;

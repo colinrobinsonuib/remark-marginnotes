@@ -1,19 +1,19 @@
 import { h } from 'hastscript'; // Helper for creating HAST (HTML AST) nodes
 import type { State } from 'mdast-util-to-hast'; // Import the State type
 import type { Element } from 'hast'; // HAST element type
-import type { AsideFootnoteDefinition, AsideFootnoteReference } from './remark-marginnotes.js';
+import { MarginnoteDefinition, MarginnoteReference } from './types.js';
 
 
 declare module 'mdast' {
     interface RootContentMap {
-        asideFootnoteDefinition: AsideFootnoteDefinition;
+        asideFootnoteDefinition: MarginnoteDefinition;
     }
 }
 
-export const inlineAsideFootnoteHandlers = {
+const marginnoteHandlers = {
     // Handler for the reference: [%note] -> <sup><a href="#aside-fn-def-1" id="aside-fn-ref-1-1">[1]</a></sup>
     // (No changes needed for the reference handler)
-    asideFootnoteReference: (state: State, node: AsideFootnoteReference): Element => {
+    marginnoteReference: (state: State, node: MarginnoteReference): Element => {
         const number = node.number ?? 'ERR';
         const identifier = node.identifier;
         const referenceInstance = node.referenceInstance ?? 1;
@@ -36,7 +36,7 @@ export const inlineAsideFootnoteHandlers = {
     },
 
     // Handler for the definition: (inserted inline) -> <span id="aside-fn-def-1" class="aside-footnote-def">...</span>
-    asideFootnoteDefinition: (state: State, node: AsideFootnoteDefinition): Element => {
+    marginnoteDefinition: (state: State, node: MarginnoteDefinition): Element => {
         const number = node.number ?? 'ERR';
         const identifier = node.identifier;
         const defId = `aside-fn-def-${number}`; // ID for this definition span
@@ -73,3 +73,5 @@ export const inlineAsideFootnoteHandlers = {
         }, childrenToRender);
     },
 };
+
+export default marginnoteHandlers;
