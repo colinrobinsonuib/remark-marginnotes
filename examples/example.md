@@ -1,4 +1,5 @@
-This is some text with a footnote reference.[+1]
+This is some text with a margin note[+mn] reference and a footnote reference[^fn].
 
-[+1]:
-    Here's a list inside the footnote:
+[+mn]: Margin notes are fun
+
+[^fn]: Footnotes are boring

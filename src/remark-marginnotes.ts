@@ -1,23 +1,15 @@
 import { visit, SKIP, CONTINUE } from 'unist-util-visit';
 import { remove } from 'unist-util-remove';
 import type { Node, Parent } from 'unist';
-import type { Paragraph, Root, Text } from 'mdast'
+import type { Paragraph, Root } from 'mdast'
 import { MarginnoteDefinition, MarginnoteReference } from './types.js';
 import { gfmMarginnote } from './micromark-extension-marginnote.js';
 import { gfmMarginnoteFromMarkdown } from './mdast-util-marginnote.js';
 
-const C_PLUS = 43; // '+'
-const C_BRACKET_OPEN = 91; // '['
-const C_BRACKET_CLOSE = 93; // ']'
-const C_COLON = 58; // ':'
-
-const identifierRegex = /^[a-zA-Z0-9_-]+$/;
-const referenceRegex = /\[\+(.*?)\]/g; // Changed % to +
-
 function remarkMarginnotes() {
     // @ts-expect-error: TS is wrong about `this`.
     // eslint-disable-next-line unicorn/no-this-assignment
-    const self = /** @type {Processor<Root>} */ (this)
+    const self = /** @type {import('unified').Processor<Root>} */ (this)
     const data = self.data()
     const micromarkExtensions = data.micromarkExtensions || (data.micromarkExtensions = [])
     const fromMarkdownExtensions = data.fromMarkdownExtensions || (data.fromMarkdownExtensions = [])
@@ -44,10 +36,12 @@ function remarkMarginnotes() {
                 return;
             }
 
+            const firstChild = node.children[0] as Paragraph;
+
             const identifier = node.identifier;
             definitions[identifier] = {
                 identifier: identifier,
-                children: node.children[0].children, // Store the children of the paragraph node
+                children: firstChild.children, // Store the children of the paragraph node
             };
 
             // Mark the original definition node for removal later
@@ -59,9 +53,6 @@ function remarkMarginnotes() {
         visit(tree, 'marginnoteReference', (node: MarginnoteReference, index: number | undefined, parent: Parent | undefined) => {
             if (!parent || index === null || index === undefined || node.type !== 'marginnoteReference') return;
 
-            referenceRegex.lastIndex = 0; // Reset regex state
-            let match;
-            let lastIndex = 0;
             const newChildren = [];
             let nodesAdded = 0; // Track how many nodes we add to adjust visitor index
 
@@ -71,10 +62,6 @@ function remarkMarginnotes() {
                 const definitionData = definitions[identifier];
                 // Only process if a valid definition exists
                 if (definitionData) {
-                    // Add text before the match
-                    // if (match.index > lastIndex) {
-                    // newChildren.push({ type: 'text', value: node.value.slice(lastIndex, match.index) });
-                    // }
 
                     // --- Assign Number and Handle First/Subsequent Reference ---
                     let number;
@@ -92,7 +79,6 @@ function remarkMarginnotes() {
                         referenceCounts[identifier]!++;
                     }
 
-
                     // --- Create and Add Definition Node (ONLY on first reference) ---
                     if (isFirstReference) {
                         const definitionNode: MarginnoteDefinition = {
@@ -107,24 +93,11 @@ function remarkMarginnotes() {
                         // (though maybe not strictly needed now we insert directly)
                         identifierFirstReferenceNode[identifier] = { parent, index };
                     }
-
-                    // lastIndex = match.index + match[0].length;
                 }
             }
 
-            // Keep searching if identifier not found or regex needs to continue
-            // referenceRegex.lastIndex = match.index + 1; // Avoid infinite loop on empty match? Should not happen here. Reset if needed.
-            // if (lastIndex === match.index) { // Safety break for potential zero-length matches (unlikely here)
-            // referenceRegex.lastIndex++;
-            // }
-
-
             // --- Replace Original Text Node if Matches Found ---
             if (newChildren.length > 0) {
-                // Add any remaining text after the last match
-                // if (lastIndex < node.value.length) {
-                // newChildren.push({ type: 'text', value: node.value.slice(lastIndex) });
-                // }
 
                 // Replace the current text node with the new nodes
                 parent.children.splice(index + 1, 0, ...newChildren);
