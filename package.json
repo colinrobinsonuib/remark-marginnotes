@@ -1,6 +1,6 @@
 {
   "name": "remark-marginnotes",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A Remark plugin to handle margin note (side note) definitions and references.",
   "keywords": [
     "remark",
@@ -90,6 +90,6 @@
     "unist-util-visit": "^5.0.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=20"
   }
 }
