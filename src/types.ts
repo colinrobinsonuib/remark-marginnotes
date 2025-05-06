@@ -7,7 +7,7 @@ import type { Node } from 'unist';
 export type MarginnoteReference = {
     type: 'marginnoteReference';
     identifier: string;
-    /** The sequential number assigned to this footnote based on first reference. */
+    /** The sequential number assigned to this marginnote. */
     number: number;
     /** Which instance of the reference this is (1st, 2nd, etc.). */
     referenceInstance: number;
@@ -21,7 +21,7 @@ export type MarginnoteReference = {
 export type MarginnoteDefinition = {
     type: 'marginnoteDefinition';
     identifier: string;
-    /** The sequential number assigned to this footnote. */
+    /** The sequential number assigned to this marginnote. */
     number: number;
     /** The MDAST nodes representing the definition content. */
     children: Node[];

@@ -22,7 +22,7 @@ function remarkMarginnotes() {
         const identifierToNumber: Record<string, number> = {}; // Map identifier to its assigned sequential number
         const identifierFirstReferenceNode: Record<string, { parent: Node; index: number }> = {}; // Map identifier to the node where the definition should be inserted after
         const referenceCounts: Record<string, number> = {}; // Map identifier to how many times it has been referenced
-        let footnoteCounter = 0; // Counter for assigning numbers
+        let marginnoteCounter = 0; // Counter for assigning numbers
 
         // --- Pass 1: Find Definitions ---
         visit(tree, 'marginnoteDefinition', (node: MarginnoteDefinition, index: number | undefined, parent: Parent | undefined) => {
@@ -69,14 +69,18 @@ function remarkMarginnotes() {
                     if (identifierToNumber[identifier] === undefined) {
                         // First time encountering this identifier
                         isFirstReference = true;
-                        footnoteCounter++;
-                        number = footnoteCounter;
+                        marginnoteCounter++;
+                        number = marginnoteCounter;
                         identifierToNumber[identifier] = number;
                         referenceCounts[identifier] = 1;
+                        node.number = number;
+                        node.referenceInstance = 1;
                     } else {
                         // Subsequent reference
                         number = identifierToNumber[identifier];
                         referenceCounts[identifier]!++;
+                        node.number = number;
+                        node.referenceInstance = referenceCounts[identifier]!;
                     }
 
                     // --- Create and Add Definition Node (ONLY on first reference) ---

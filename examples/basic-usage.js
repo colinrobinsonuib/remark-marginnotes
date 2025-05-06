@@ -13,6 +13,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+marginnoteHandlers
+
 async function processMarkdown() {
     try {
         // Read the example Markdown file
@@ -23,7 +25,9 @@ async function processMarkdown() {
             .use(remarkParse)
             .use(remarkGfm)
             .use(remarkMarginnotesPlugin)
-            .use(remarkRehype, { handlers: marginnoteHandlers })
+            .use(remarkRehype, { handlers: marginnoteHandlers({
+                    useNumbers: true,
+                }) })
             .use(rehypeStringify)
             .process(file);
 
