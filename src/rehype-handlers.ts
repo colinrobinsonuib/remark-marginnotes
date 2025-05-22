@@ -26,8 +26,6 @@ const shapeList = [
     '■',  // Black Square
     '●',  // Black Circle
     '◆',  // Black Diamond
-    '★',  // Black Star
-    '♥',  // Black Heart Suit
     '❖',  // Black Diamond Minus White X
     '◉',  // Fisheye
 ];
