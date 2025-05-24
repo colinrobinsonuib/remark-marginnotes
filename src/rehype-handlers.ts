@@ -79,7 +79,7 @@ const marginnoteHandlers = (options: Options): Handlers => {
                     'aria-describedby': 'marginnote-label-' + safeId, // Points to label within the definition span
                     'data-marginnote-identifier': identifier,
                     'data-marginnote-instance': referenceInstance,
-                }, `[${label}]`)
+                }, `${label}`)
             ]);
         },
 
