@@ -1,6 +1,6 @@
-import { h } from 'hastscript'; // Helper for creating HAST (HTML AST) nodes
-import type {Handlers, State} from 'mdast-util-to-hast'; // Import the State type
-import type { Element } from 'hast'; // HAST element type
+import { h } from 'hastscript';
+import type {Handlers, State} from 'mdast-util-to-hast';
+import type { Element } from 'hast';
 import { MarginnoteDefinition, MarginnoteReference } from './types.js';
 import { normalizeUri } from 'micromark-util-sanitize-uri'
 
@@ -17,29 +17,52 @@ declare module 'mdast' {
 }
 
 type Options = {
-    useNumbers?: boolean;
-    useShapes?: boolean;
+    label: 'text' | 'numbers' | 'shapes' | 'letters' | 'custom';
+    charList?: string[];
 }
 
 const shapeList = [
+    '●',  // Black Circle4
+    '◆',  // Black Diamond
     '▲',  // Black Up-Pointing Triangle
     '■',  // Black Square
-    '●',  // Black Circle
-    '◆',  // Black Diamond
-    '❖',  // Black Diamond Minus White X
     '◉',  // Fisheye
+    '❖',  // Black Diamond Minus White X
 ];
 
+const letterList = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
-const marginnoteHandlers = (options: Options): Handlers => {
 
-    if(options.useShapes){
-        options.useNumbers = true;
+const marginnoteHandlers = (options: Options = {label: 'text'}): Handlers => {
+
+    if(!options.label || !['numbers', 'shapes', 'letters', 'custom'].includes(options.label)) {
+        options.label = 'text';
     }
 
+    if(options.label === 'custom') {
+        if (!options.charList || options.charList.length === 0) {
+            throw new Error("Custom label option requires a non-empty charList array.");
+        }
+    }
+
+    const useTextLabel = options.label === 'text';
+
+    const getLabel = (node: MarginnoteReference | MarginnoteDefinition): string => {
+        if(options.label === 'numbers') {
+            return node.number.toString();
+        } else if (options.label === 'shapes') {
+            return shapeList[(node.number-1) % shapeList.length] as string;
+        } else if (options.label === 'letters') {
+            return letterList[(node.number-1) % letterList.length] as string;
+        } else if (options.label === 'custom') {
+            // @ts-ignore
+            return options.charList[(node.number-1) % options.charList.length] as string;
+        }
+        throw new Error(`Invalid label option: ${options.label}`);
+    };
+
     return {
-        // Handler for the reference: [+note] -> <sup><a href="#marginnote-def-1" id="marginnote-ref-1-1">[1]</a></sup>
-        // (No changes needed for the reference handler)
+        // Handler for the reference: [+note] -> <sup><a href="#marginnote-def-1" id="marginnote-ref-1-1">1</a></sup>
         marginnoteReference: (state: State, node: MarginnoteReference): Element => {
 
             const marginState = state as MarginState;
@@ -51,8 +74,6 @@ const marginnoteHandlers = (options: Options): Handlers => {
                 marginState.marginnoteOrder = [];
             }
 
-            const index = marginState.marginnoteOrder.indexOf(identifier)
-
             let reuseCounter = marginState.marginnoteCounts.get(identifier)
             if (reuseCounter === undefined) {
                 reuseCounter = 0
@@ -63,20 +84,19 @@ const marginnoteHandlers = (options: Options): Handlers => {
 
             const referenceInstance = node.referenceInstance ?? 1;
 
-            const safeId = options.useNumbers ? node.number : normalizeUri(identifier.toLowerCase())
-            const label = options.useShapes ? shapeList[node.number % shapeList.length] : safeId;
+            const safeId = normalizeUri(identifier.toLowerCase());
+            const label = useTextLabel ? safeId : getLabel(node);
 
             const defId = `marginnote-def-${safeId}`; // Use span ID now
             const refId = `marginnote-ref-${safeId}-${referenceInstance}`;
 
-            // Optional: Add a class to the sup wrapper if needed for styling interactions
             return h('sup', {className: 'marginnote-ref-wrapper'}, [
                 h('a', {
-                    href: `#${defId}`, // Points to the definition span ID
+                    href: `#${defId}`,
                     id: refId,
                     className: ['marginnote-ref'],
                     role: 'doc-noteref',
-                    'aria-describedby': 'marginnote-label-' + safeId, // Points to label within the definition span
+                    'aria-describedby': 'marginnote-label-' + safeId,
                     'data-marginnote-identifier': identifier,
                     'data-marginnote-instance': referenceInstance,
                 }, `${label}`)
@@ -88,11 +108,11 @@ const marginnoteHandlers = (options: Options): Handlers => {
 
             const identifier = node.identifier;
 
-            const safeId = options.useNumbers ? node.number : normalizeUri(identifier.toLowerCase())
-            const label = options.useShapes ? shapeList[node.number % shapeList.length] : safeId;
+            const safeId = normalizeUri(identifier.toLowerCase());
+            const label = useTextLabel ? safeId : getLabel(node);
 
-            const defId = `marginnote-def-${safeId}`; // ID for this definition span
-            const firstRefId = `marginnote-ref-${safeId}-1`; // ID of the first reference
+            const defId = `marginnote-def-${safeId}`;
+            const firstRefId = `marginnote-ref-${safeId}-1`;
 
             // Process the content of the marginnote definition
             const content = state.all(node);
@@ -111,7 +131,7 @@ const marginnoteHandlers = (options: Options): Handlers => {
             // Assemble children for the span
             const childrenToRender = [
                 arialabel,
-                h('span', {className: 'marginnote-number'}, `${label} `),
+                h('span', {className: 'marginnote-number'}, `${label}`),
                 ...content,
                 ' ',
                 backReference

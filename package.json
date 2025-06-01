@@ -1,6 +1,6 @@
 {
   "name": "remark-marginnotes",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A Remark plugin to handle margin note (side note) definitions and references.",
   "keywords": [
     "remark",
@@ -48,7 +48,6 @@
     "build:esm": "tsc --project tsconfig.json --outDir ./dist --declaration --declarationMap --sourceMap",
     "build": "npm run clean && npm run build:esm",
     "dev": "tsc --watch --project tsconfig.json --outDir ./dist --declaration --declarationMap --sourceMap",
-    "test": "echo \"Error: no test specified\" && exit 1",
     "prepack": "npm run build",
     "example": "node examples/basic-usage.js"
   },
